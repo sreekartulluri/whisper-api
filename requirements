@@ -1,0 +1,2 @@
+#install these.
+pip install sounddevice scipy noisereduce numpy librosa soundfile openai-whisper
