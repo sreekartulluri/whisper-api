@@ -1,0 +1,61 @@
+import sounddevice as sd
+from scipy.io.wavfile import write, read
+import noisereduce as nr
+import numpy as np
+import librosa
+import soundfile as sf
+import whisper
+
+#Record audio
+duration = 5  # seconds
+sample_rate = 16000  # 44.1 kHz # 16khz
+print("Recording...")
+recording = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=2, dtype='float32')
+sd.wait()
+write("one.wav", sample_rate, recording)
+print("Recording complete. Saved as 'one.wav'")
+
+ #Load recorded audio
+rate, data = read("one.wav")
+
+#Convert stereo to mono
+if len(data.shape) == 2:
+    data = data.mean(axis=1)
+
+ #Normalize if not in float
+if data.dtype != np.float32:
+    data = data / np.max(np.abs(data))  # Normalize to -1 to 1
+
+ #Apply noise reduction
+reduced_noise = nr.reduce_noise(y=data, sr=rate)
+
+ #Scale float to int16 range before saving
+scaled = np.int16(reduced_noise / np.max(np.abs(reduced_noise)) * 32767)
+write("one.wav", rate, scaled)
+
+print("Noise reduction successful. Saved as 'one.wav'")
+
+
+# Load audio
+y, sr = librosa.load("sample.wav", sr=None)
+
+# Detect non-silent intervals
+intervals = librosa.effects.split(y, top_db=15)  # Adjust top_db if too sensitive
+
+# Concatenate all non-silent parts
+nonsilent_audio = np.concatenate([y[start:end] for start, end in intervals])
+
+# Save trimmed audio
+sf.write("one.wav", nonsilent_audio, sr)
+print("Silence removed. Saved as 'one.wav'")
+
+model = whisper.load_model("large")
+# Transcribe the audio file
+result = model.transcribe("one.wav", language="en")
+print(result["text"])
+
+
+
+
+
+
